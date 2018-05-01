@@ -51,29 +51,6 @@
       name: default
       namespace: '{{ namespace }}'
 
-# CRDs are always cluster scoped
-# Create a cluster-role{-binding} for now until we can tell the operator to not try creating the CRD (because we'll create it for them)
-- name: RBAC - Create operator cluster role
-  openshift_v1_cluster_role:
-    name: '{{ namespace }}-operator-cl-role'
-    rules:
-    - api_groups: [apiextensions.k8s.io]
-      resources: [customresourcedefinitions]
-      verbs: ["*"]
-  
-- name: RBAC - Create operator cluster binding
-  k8s_v1beta1_cluster_role_binding:
-    name: '{{ namespace }}-operator-cl-binding'
-    role_ref_kind: ClusterRole
-    role_ref_api_group: rbac.authorization.k8s.io
-    role_ref_name: '{{ namespace }}-operator-cl-role'
-    subjects:
-    - kind: Group
-      name: system:serviceaccount:{{ namespace }}
-    - kind: ServiceAccount
-      name: default
-      namespace: '{{ namespace }}'
-
 #- name: Create Service Account
 #  k8s_v1_service_account:
 #    name: '{{ application_name }}'
@@ -91,7 +68,11 @@
 #      name: '{{ application_name }}'
 #      namespace: '{{ namespace }}'
 
-- name: Pre-create CRD
+##############################################################################
+## Create the CRD now so that we don't need a cluster-role{-binding} to allow
+## the operator to do it
+##############################################################################
+- name: Create Replication CRD
   k8s_v1beta1_custom_resource_definition:
     name: replicatedstatefulsets.clusterlabs.org
     state: present
@@ -128,6 +109,7 @@
       service: replication-operator
     containers:
       - image: quay.io/beekhof/rss-operator:latest
+        command: [ "/usr/local/bin/rss-operator", "-alsologtostderr", "-create-crd=false"]
         name: rss-operator
         env:
         - name: POD_NAMESPACE
