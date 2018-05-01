@@ -1,4 +1,5 @@
 - name: replication-apb playbook to provision the application
+  strategy: debug
   hosts: localhost
   gather_facts: false
   connection: local
@@ -7,4 +8,8 @@
     install_python_requirements: no
   - role: ansibleplaybookbundle.asb-modules
   - role: provision-replication-apb
-    playbook_debug: false
+    playbook_debug: true
+  vars:
+    action: provision
+    cluster: openshift
+    

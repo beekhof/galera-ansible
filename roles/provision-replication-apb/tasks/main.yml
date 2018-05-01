@@ -5,7 +5,105 @@
 ## below are some sample resources for getting started deploying an application
 ## to OpenShift.
 ##############################################################################
+- include: "login.yml"
 
+- name: RBAC - Create operator role
+  k8s_v1beta1_role:
+    name: '{{ namespace }}-operator-role'
+    namespace: '{{ namespace }}'
+    rules:
+    - api_groups: [clusterlabs.org]
+      resources: [replicatedstatefulsets]
+      verbs: ["*"]
+    - api_groups: [apiextensions.k8s.io]
+      resources: [customresourcedefinitions]
+      verbs: ["*"]
+    - api_groups: [""]
+      resources:
+      - pods
+      - pods/exec
+      - secrets
+      - services
+      - endpoints
+      - configmaps
+      - persistentvolumeclaims
+      - events
+      verbs:
+      - "*"
+    - api_groups: [apps]
+      resources:
+      - deployments
+      - statefulsets
+      verbs: ["*"]
+
+# openshift_v1_role_binding
+- name: RBAC - Create operator binding
+  k8s_v1beta1_role_binding:
+    name: '{{ namespace }}-operator-binding'
+    namespace: '{{ namespace }}'
+    role_ref_kind: Role
+    role_ref_api_group: rbac.authorization.k8s.io
+    role_ref_name: '{{ namespace }}-operator-role'
+    subjects:
+    - kind: Group
+      name: system:serviceaccount:{{ namespace }}
+    - kind: ServiceAccount
+      name: default
+      namespace: '{{ namespace }}'
+
+# CRDs are always cluster scoped
+# Create a cluster-role{-binding} for now until we can tell the operator to not try creating the CRD (because we'll create it for them)
+- name: RBAC - Create operator cluster role
+  openshift_v1_cluster_role:
+    name: '{{ namespace }}-operator-cl-role'
+    rules:
+    - api_groups: [apiextensions.k8s.io]
+      resources: [customresourcedefinitions]
+      verbs: ["*"]
+  
+- name: RBAC - Create operator cluster binding
+  k8s_v1beta1_cluster_role_binding:
+    name: '{{ namespace }}-operator-cl-binding'
+    role_ref_kind: ClusterRole
+    role_ref_api_group: rbac.authorization.k8s.io
+    role_ref_name: '{{ namespace }}-operator-cl-role'
+    subjects:
+    - kind: Group
+      name: system:serviceaccount:{{ namespace }}
+    - kind: ServiceAccount
+      name: default
+      namespace: '{{ namespace }}'
+
+#- name: Create Service Account
+#  k8s_v1_service_account:
+#    name: '{{ application_name }}'
+#    namespace: '{{ namespace }}'
+#
+#- name: Create Role Binding
+#  openshift_v1_role_binding:
+#    namespace: '{{ namespace }}'
+#    name: '{{ application_name }}'
+#    user_names:
+#      - system:serviceaccount:{{ Namespace }}:{{ application_name }}
+#    role_ref_name: "view"
+#    subjects:            
+#    - kind: ServiceAccount
+#      name: '{{ application_name }}'
+#      namespace: '{{ namespace }}'
+
+- name: Pre-create CRD
+  k8s_v1beta1_custom_resource_definition:
+    name: replicatedstatefulsets.clusterlabs.org
+    state: present
+    spec_version: v1alpha1
+    spec_scope: Namespaced
+    spec_group: clusterlabs.org
+    spec_names_kind: ReplicatedStatefulSet
+    spec_names_singular: replicatedstatefulset
+    spec_names_plural: replicatedstatefulsets
+    spec_names_list_kind: ReplicatedStatefulSetList
+    spec_names_short_names:
+    - rss
 
 ##############################################################################
 ## An OpenShift Origin deployment configuration provides a replication
@@ -13,27 +111,64 @@
 ## one deployment of an image to a new one.
 ## https://docs.openshift.org/latest/architecture/core_concepts/deployments.html#deployments-and-deployment-configurations
 ##############################################################################
-#- name: create deployment config
-#  openshift_v1_deployment_config:
-#    name: replication
-#    namespace: '{{ namespace }}'
-#    labels:
-#      app: replication
-#      service: replication
-#    replicas: 1
-#    selector:
-#      app: replication
-#      service: replication
-#    spec_template_metadata_labels:
-#      app: replication
-#      service: replication
-#    containers:
-#    - env:
-#      image: docker.io/ansibleplaybookbundle/hello-world:latest # replace with your application image
-#      name: replication
-#      ports:
-#      - container_port: 8080
-#        protocol: TCP
+- name: Create operator deployment config
+  openshift_v1_deployment_config:
+    name: replication-operator
+    namespace: '{{ namespace }}'
+    labels:
+      app: replication-operator
+      service: replication-operator
+    replicas: 1
+    strategy_type: Recreate
+    selector:
+      app: replication-operator
+      service: replication-operator
+    spec_template_metadata_labels:
+      app: replication-operator
+      service: replication-operator
+    containers:
+      - image: quay.io/beekhof/rss-operator:latest
+        name: rss-operator
+        env:
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: metadata.namespace
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: metadata.name
+
+
+##############################################################################
+## Create a Galera cluster
+## 
+## 
+##############################################################################
+- name: Create PVC for persistent deployment
+  k8s_v1_persistent_volume_claim:
+    name: '{{ galera_database }}'
+    namespace: '{{ namespace }}'
+    access_modes:
+      - ReadWriteOnce
+    resources_requests:
+      storage: '{{ volume_size }}G'
+    state: '{{ state }}'
+  async: 180
+  poll: 0
+  register: create_pvc
+  when: _apb_plan_id == "persistent"
+
+
+- name: Create {{ _apb_plan_id }} Galera deployment
+  template:
+    src: 'galera-{{  _apb_plan_id }}.j2'
+    dest: '/tmp/cluster.yaml'
+
+- name: Create Galera cluster
+  command: "oc apply -f /tmp/cluster.yaml"
 
 
 ##############################################################################
@@ -73,8 +208,6 @@
 #    to_name: replication
 #    spec_port_target_port: web
 
-
-
 ##############################################################################
 ## Bindable services must make credentials available to the Ansible Service
 ## Broker during the provision stage.  They will later be made available to
@@ -84,5 +217,9 @@
 #- name: encode bind credentials
 #  asb_encode_binding:
 #    fields:
-#      ENV_VAR_1: value1
-#      ENV_VAR_2: value2
+#      DB_TYPE: galera
+#      DB_HOST: my-pg
+#      DB_PORT: "5432"
+#      DB_NAME: "{{ galera_database }}"
+#      DB_USER: "{{ galera_user }}"
+#      DB_PASSWORD: "{{ galera_password }}"

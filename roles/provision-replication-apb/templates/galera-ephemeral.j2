@@ -1,0 +1,73 @@
+apiVersion: clusterlabs.org/v1alpha1
+kind: ReplicatedStatefulSet
+metadata:
+  name: {{ galera_database }}
+spec:
+  replicas: {{ galera_replicas }}
+  servicePorts:
+  - name: galera
+    protocol: TCP
+    port: 3306
+    targetPort: 3306
+  pod:
+    antiAffinity: true
+    commands:
+      sequence: 
+        timeout: 20s
+        command: ["/sequence.sh"]
+      primary: 
+        command: ["/start.sh"]
+      seed: 
+        command: ["/seed.sh"]
+      status: 
+        timeout: 2m
+        command: ["/check.sh"]
+      stop: 
+        command: ["/stop.sh"]
+    containers:
+    - name: {{ galera_database }}
+      command: ["/run.sh", "-x"]
+      image: quay.io/beekhof/galera:latest
+      imagePullPolicy: Always
+      lifecycle:
+        preStop:
+            exec:
+              command: ["/stop.sh"]
+      env:
+        - name: GALERA_PASSWORD
+          value: '{{ galera_password }}'
+        - name: GALERA_USER
+          value: '{{ galera_user }}'
+        - name: GALERA_DATABASE
+          value: '{{ galera_database }}'
+      volumeMounts:
+      - name: '{{ galera_database }}-data'
+        mountPath: /var/lib/mysql
+      - name: '{{ galera_database }}-logs'
+        mountPath: /var/log
+      ports:
+      - containerPort: 3306
+        name: galera
+        protocol: TCP
+      - containerPort: 4567
+        name: galera-tcp-rep
+        protocol: TCP
+      - containerPort: 4567
+        name: galera-udp-rep
+        protocol: UDP
+      - containerPort: 4568
+        name: galera-state
+        protocol: TCP
+      - containerPort: 4444
+        name: galera-snap
+        protocol: TCP
+        # http://galeracluster.com/documentation-webpages/firewallsettings.html
+        # 3306 For MySQL client connections and State Snapshot Transfer that use the mysqldump method.
+        # 4567 For Galera Cluster replication traffic, multicast replication uses both UDP transport and TCP on this port.
+        # 4568 For Incremental State Transfer.
+        # 4444 For all other State Snapshot Transfer.
+    volumes:
+    - name: '{{ galera_database }}-data'
+      emptyDir: {}
+    - name: '{{ galera_database }}-logs'
+      emptyDir: {}

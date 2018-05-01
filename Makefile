@@ -1,6 +1,6 @@
-DOCKERHOST = docker.io
-DOCKERORG = replication-apb
-IMAGENAME = replication
+DOCKERHOST = quay.io
+DOCKERORG = beekhof
+IMAGENAME = galera-apb
 TAG = latest
 USER=$(shell id -u)
 PWD=$(shell pwd)

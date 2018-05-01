@@ -1,0 +1,6 @@
+openshift: true
+release: true
+
+galera_data_volume_name: "{{ galera_database }}-data"
+galera_data_path: "/var/opt/galera/data"
+galera_db: "{{ GALERA_DATABASE | default('TestDB') }}"
