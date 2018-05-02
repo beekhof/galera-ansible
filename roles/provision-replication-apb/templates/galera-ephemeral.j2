@@ -4,6 +4,7 @@ metadata:
   name: {{ galera_database }}
 spec:
   replicas: {{ galera_replicas }}
+  serviceAccountName: '{{ galera_database }}-operator'
   servicePorts:
   - name: galera
     protocol: TCP
@@ -24,9 +25,10 @@ spec:
         command: ["/check.sh"]
       stop: 
         command: ["/stop.sh"]
+    securityContext:
+      runAsUser: 27
     containers:
     - name: {{ galera_database }}
-      command: ["/run.sh", "-x"]
       image: quay.io/beekhof/galera:latest
       imagePullPolicy: Always
       lifecycle:

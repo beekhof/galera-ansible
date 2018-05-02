@@ -7,6 +7,15 @@
 ##############################################################################
 - include: "login.yml"
 
+- name: Create Service Account
+  k8s_v1_service_account:
+    name: '{{ galera_database }}-operator'
+    namespace: '{{ namespace }}'
+
+- name: Add Privileged Policy
+  command: "oc adm policy add-scc-to-user nonroot -z {{ galera_database }}-operator -n {{ namespace }}"
+  when: openshift==true
+
 - name: RBAC - Create operator role
   k8s_v1beta1_role:
     name: '{{ namespace }}-operator-role'
@@ -48,20 +57,16 @@
     - kind: Group
       name: system:serviceaccount:{{ namespace }}
     - kind: ServiceAccount
-      name: default
+      name: '{{ galera_database }}-operator'
       namespace: '{{ namespace }}'
 
-#- name: Create Service Account
-#  k8s_v1_service_account:
-#    name: '{{ application_name }}'
-#    namespace: '{{ namespace }}'
 #
 #- name: Create Role Binding
 #  openshift_v1_role_binding:
 #    namespace: '{{ namespace }}'
 #    name: '{{ application_name }}'
 #    user_names:
-#      - system:serviceaccount:{{ Namespace }}:{{ application_name }}
+#      - system:serviceaccount:{{ Namespace }}:{{ galera_database }}-operator }}
 #    role_ref_name: "view"
 #    subjects:            
 #    - kind: ServiceAccount
@@ -104,6 +109,7 @@
     selector:
       app: replication-operator
       service: replication-operator
+    spec_template_spec_service_account_name: '{{ galera_database }}-operator'
     spec_template_metadata_labels:
       app: replication-operator
       service: replication-operator
@@ -129,19 +135,19 @@
 ## 
 ## 
 ##############################################################################
-- name: Create PVC for persistent deployment
-  k8s_v1_persistent_volume_claim:
-    name: '{{ galera_database }}'
-    namespace: '{{ namespace }}'
-    access_modes:
-      - ReadWriteOnce
-    resources_requests:
-      storage: '{{ volume_size }}G'
-    state: '{{ state }}'
-  async: 180
-  poll: 0
-  register: create_pvc
-  when: _apb_plan_id == "persistent"
+#- name: Create PVC for persistent deployment
+#  k8s_v1_persistent_volume_claim:
+#    name: '{{ galera_database }}'
+#    namespace: '{{ namespace }}'
+#    access_modes:
+#      - ReadWriteOnce
+#    resources_requests:
+#      storage: '{{ volume_size }}G'
+#    state: '{{ state }}'
+#  async: 180
+#  poll: 0
+#  register: create_pvc
+#  when: _apb_plan_id == "persistent"
 
 
 - name: Create {{ _apb_plan_id }} Galera deployment
