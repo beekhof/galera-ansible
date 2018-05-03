@@ -1,4 +1,4 @@
-openshift: true
+cluster: openshift
 release: true
 
 galera_data_volume_name: "{{ galera_database }}-data"

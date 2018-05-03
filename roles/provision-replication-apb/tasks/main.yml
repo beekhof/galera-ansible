@@ -14,7 +14,7 @@
 
 - name: Add Privileged Policy
   command: "oc adm policy add-scc-to-user nonroot -z {{ galera_database }}-operator -n {{ namespace }}"
-  when: openshift==true
+  when: cluster=="openshift"
 
 - name: RBAC - Create operator role
   k8s_v1beta1_role:
