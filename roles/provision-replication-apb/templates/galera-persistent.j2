@@ -1,12 +1,12 @@
 apiVersion: clusterlabs.org/v1alpha1
 kind: ReplicatedStatefulSet
 metadata:
-  # https://github.com/kubernetes/community/blob/master/contributors/devel/api-conventions.md#idempotency
   name: {{ galera_database }}
   labels:
     kind: galera
 spec:
   replicas: {{ galera_replicas }}
+  serviceAccountName: '{{ galera_database }}-operator'
   servicePorts:
   - name: galera
     protocol: TCP
@@ -44,9 +44,10 @@ spec:
         resources:
           requests:
             storage: 1Gi
+    securityContext:
+      runAsUser: 27
     containers:
-    - name: '{{ galera_database }}'
-      command: ["/run.sh", "-x"]
+    - name: {{ galera_database }}
       image: quay.io/beekhof/galera:latest
       imagePullPolicy: Always
       lifecycle:
@@ -60,6 +61,11 @@ spec:
           value: '{{ galera_user }}'
         - name: GALERA_DATABASE
           value: '{{ galera_database }}'
+      volumeMounts:
+      - name: '{{ galera_database }}-data'
+        mountPath: /var/lib/mysql
+      - name: '{{ galera_database }}-logs'
+        mountPath: /var/log
       ports:
       - containerPort: 3306
         name: galera
@@ -81,8 +87,3 @@ spec:
         # 4567 For Galera Cluster replication traffic, multicast replication uses both UDP transport and TCP on this port.
         # 4568 For Incremental State Transfer.
         # 4444 For all other State Snapshot Transfer.
-      volumeMounts:
-      - name: '{{ galera_database }}-data'
-        mountPath: /var/lib/mysql
-      - name: {{ galera_database }}-logs'
-        mountPath: /var/log
