@@ -27,6 +27,7 @@ spec:
         command: ["/stop.sh"]
     securityContext:
       runAsUser: 27
+      supplementalGroups: [ 0 ]
     containers:
     - name: {{ galera_database }}
       image: quay.io/beekhof/galera:latest
