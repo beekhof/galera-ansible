@@ -20,22 +20,34 @@ plans:
         title: Openshift Admin Password
         type: string
         display_type: password
-        default: na
-      - name: galera_replicas
-        title: Database copies
-        type: number
-        default: 3
-      - name: galera_database
-        title: Galera Database Name
+        default: password
+      - name: service_name
+        description: The name of the service. Used to name and label resources
         type: string
         default: galera
-      - name: galera_user
-        title: Galera User
+        pattern: "^[a-zA-Z0-9]+[a-zA-Z0-9-]*[a-zA-Z0-9]+$"
+        required: true
+      - name: service_replicas
+        title: Number of database replicas
+        type: number
+        default: 3
+      - name: mysql_database
+        description: The name of the MySQL database
         type: string
+        default: sample
+        pattern: "^[a-zA-Z0-9_]*[a-zA-Z_]+[a-zA-Z0-9_]*$"
+        required: true
+      - name: mysql_user
+        description: Username that will be used to connect to MySQL
+        type: string
+        pattern: "^[a-zA-Z0-9_]*[a-zA-Z_]+[a-zA-Z0-9_]*$"
         default: admin
-      - name: galera_password
-        title: Galera Password
+        required: true
+      - name: mysql_password
+        description: Password to connect to MySQL (generated if blank)
         type: string
+        required: true
+        display_type: password
         default: admin
   - name: persistent
     description: This plan deploys a persistent Galera cluster on Linux
@@ -51,20 +63,38 @@ plans:
         title: Openshift Admin Password
         type: string
         display_type: password
-        default: na
-      - name: galera_replicas
-        title: Database copies
-        type: number
-        default: 3
-      - name: galera_database
-        title: Galera Database Name
+        default: password
+      - name: service_name
+        description: The name of the service. Used to name and label resources
         type: string
         default: galera
-      - name: galera_user
-        title: Galera User
+        pattern: "^[a-zA-Z0-9]+[a-zA-Z0-9-]*[a-zA-Z0-9]+$"
+        required: true
+      - name: service_replicas
+        title: Number of database replicas
+        type: number
+        default: 3
+      - name: mysql_database
+        description: The name of the MySQL database
         type: string
-        default: admin
-      - name: galera_password
-        title: Galera Password
+        default: sample
+        pattern: "^[a-zA-Z0-9_]*[a-zA-Z_]+[a-zA-Z0-9_]*$"
+        required: true
+      - name: mysql_user
+        description: Username that will be used to connect to MySQL
         type: string
+        pattern: "^[a-zA-Z0-9_]*[a-zA-Z_]+[a-zA-Z0-9_]*$"
         default: admin
+        required: true
+      - name: mysql_password
+        description: Password to connect to MySQL (generated if blank)
+        type: string
+        required: true
+        display_type: password
+        default: admin
+      - name: volume_size
+        type: enum
+        default: '1Gi'
+        enum: ['1Gi', '5Gi', '10Gi']
+        title: MySQL Volume Size
+        required: true

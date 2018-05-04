@@ -1,6 +1,17 @@
 cluster: openshift
+state: present
 release: true
 
-galera_data_volume_name: "{{ galera_database }}-data"
-galera_data_path: "/var/opt/galera/data"
-galera_db: "{{ GALERA_DATABASE | default('TestDB') }}"
+service_replicas: 3
+service_name: "{{ lookup('env','SERVICE_NAME') | default('galera', true) }}"
+volume_size: "{{ lookup('env','VOLUME_SIZE') | default('1Gi', true) }}"
+
+mysql_user: "{{ lookup('env','MYSQL_USER') | default('admin', true) }}"
+mysql_password: "{{ lookup('env','MYSQL_PASSWORD') | default('admin', true) }}"
+mysql_database: "{{ lookup('env','MYSQL_DATABASE') | default('sample', true) }}"
+
+#mysql_version: "{{ lookup('env','MYSQL_VERSION') | default('10.1', true) }}"
+#galera_version: "{{ lookup('env','MYSQL_VERSION') | default('25.3', true) }}"
+#galera_image: "registry.access.redhat.com/rhscl/galera-{{ galera_version | replace('.', '')}}-rhel7"
+galera_image: "quay.io/beekhof/galera:latest"
+

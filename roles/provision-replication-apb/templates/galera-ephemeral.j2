@@ -1,10 +1,12 @@
 apiVersion: clusterlabs.org/v1alpha1
 kind: ReplicatedStatefulSet
 metadata:
-  name: {{ galera_database }}
+  name: {{ service_name }}
+  labels:
+    kind: galera
 spec:
-  replicas: {{ galera_replicas }}
-  serviceAccountName: '{{ galera_database }}-operator'
+  replicas: {{ service_replicas }}
+  serviceAccountName: '{{ namespace }}-replication-operator'
   servicePorts:
   - name: galera
     protocol: TCP
@@ -29,25 +31,25 @@ spec:
       runAsUser: 27
       supplementalGroups: [ 0 ]
     containers:
-    - name: {{ galera_database }}
-      image: quay.io/beekhof/galera:latest
+    - name: {{ service_name }}
+      image: {{ galera_image }}
       imagePullPolicy: Always
       lifecycle:
         preStop:
             exec:
               command: ["/stop.sh"]
       env:
-        - name: GALERA_PASSWORD
-          value: '{{ galera_password }}'
-        - name: GALERA_USER
-          value: '{{ galera_user }}'
-        - name: GALERA_DATABASE
-          value: '{{ galera_database }}'
+        - name: MYSQL_DATABASE
+          value: '{{ mysql_database }}'
+        - name: MYSQL_USER
+          value: '{{ mysql_user }}'
+        - name: MYSQL_PASSWORD
+          value: '{{ mysql_password }}'
       volumeMounts:
-      - name: '{{ galera_database }}-data'
-        mountPath: /var/lib/mysql
-      - name: '{{ galera_database }}-logs'
-        mountPath: /var/log
+      - mountPath: /var/lib/mysql
+        name: '{{ service_name }}-{{ _apb_plan_id }}-logs'
+      - mountPath: /var/log
+        name: '{{ service_name }}-{{ _apb_plan_id }}-logs'
       ports:
       - containerPort: 3306
         name: galera
@@ -70,7 +72,7 @@ spec:
         # 4568 For Incremental State Transfer.
         # 4444 For all other State Snapshot Transfer.
     volumes:
-    - name: '{{ galera_database }}-data'
+    - name: '{{ service_name }}-{{ _apb_plan_id }}-data'
       emptyDir: {}
-    - name: '{{ galera_database }}-logs'
+    - name: '{{ service_name }}-{{ _apb_plan_id }}-logs'
       emptyDir: {}

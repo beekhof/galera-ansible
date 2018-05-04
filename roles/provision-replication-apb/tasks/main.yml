@@ -9,11 +9,11 @@
 
 - name: Create Service Account
   k8s_v1_service_account:
-    name: '{{ galera_database }}-operator'
+    name: '{{ namespace }}-replication-operator'
     namespace: '{{ namespace }}'
 
 - name: Add Privileged Policy
-  command: "oc adm policy add-scc-to-user nonroot -z {{ galera_database }}-operator -n {{ namespace }}"
+  command: "oc adm policy add-scc-to-user nonroot -z {{ namespace }}-replication-operator -n {{ namespace }}"
   when: cluster=="openshift"
 
 - name: RBAC - Create operator role
@@ -57,7 +57,7 @@
     - kind: Group
       name: system:serviceaccount:{{ namespace }}
     - kind: ServiceAccount
-      name: '{{ galera_database }}-operator'
+      name: '{{ namespace }}-replication-operator'
       namespace: '{{ namespace }}'
 
 #
@@ -66,7 +66,7 @@
 #    namespace: '{{ namespace }}'
 #    name: '{{ application_name }}'
 #    user_names:
-#      - system:serviceaccount:{{ Namespace }}:{{ galera_database }}-operator }}
+#      - system:serviceaccount:{{ Namespace }}:{{ namespace }}-replication-operator }}
 #    role_ref_name: "view"
 #    subjects:            
 #    - kind: ServiceAccount
@@ -109,7 +109,7 @@
     selector:
       app: replication-operator
       service: replication-operator
-    spec_template_spec_service_account_name: '{{ galera_database }}-operator'
+    spec_template_spec_service_account_name: '{{ namespace }}-replication-operator'
     spec_template_metadata_labels:
       app: replication-operator
       service: replication-operator
@@ -158,7 +158,6 @@
 - name: Create Galera cluster
   command: "oc apply -f /tmp/cluster.yaml"
 
-
 ##############################################################################
 ## A Kubernetes service serves as an internal load balancer.  It identifies a
 ## set of replicated pods in order to proxy the connections it receives to them.
@@ -202,12 +201,13 @@
 ## applications after a binding is created.
 ## https://github.com/kubernetes-incubator/service-catalog/blob/master/docs/design.md#using-a-service-instance
 ##############################################################################
-#- name: encode bind credentials
-#  asb_encode_binding:
-#    fields:
-#      DB_TYPE: galera
-#      DB_HOST: my-pg
-#      DB_PORT: "5432"
-#      DB_NAME: "{{ galera_database }}"
-#      DB_USER: "{{ galera_user }}"
-#      DB_PASSWORD: "{{ galera_password }}"
+- name: encode bind credentials
+  asb_encode_binding:
+    fields:
+      DB_TYPE: "galera"
+      DB_HOST: "{{ service_name }}"
+      DB_PORT: "3306"
+      DB_USER: "{{ mysql_user }}"
+      DB_PASSWORD: "{{ mysql_password }}"
+      DB_NAME: "{{ mysql_database }}"
+  when: state == 'present'
