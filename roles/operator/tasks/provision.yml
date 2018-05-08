@@ -11,7 +11,7 @@
 ##############################################################################
 - name: Create Service Account
   k8s_v1_service_account:
-    name: {{ service_account }}
+    name: '{{ service_account }}'
     namespace: '{{ namespace }}'
 
 ##############################################################################
@@ -68,7 +68,7 @@
     - kind: Group
       name: system:serviceaccount:{{ namespace }}
     - kind: ServiceAccount
-      name: {{ service_account }}
+      name: '{{ service_account }}'
       namespace: '{{ namespace }}'
 
 ##############################################################################
@@ -109,7 +109,7 @@
     selector_match_labels:
       app: replication-operator
       service: replication-operator
-    service_account_name: {{ service_account }}
+    service_account_name: '{{ service_account }}'
     spec_template_metadata_labels:
       app: replication-operator
       service: replication-operator
