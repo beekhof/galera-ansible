@@ -6,7 +6,7 @@ metadata:
     kind: galera
 spec:
   replicas: {{ service_replicas }}
-  serviceAccountName: '{{ namespace }}-replication-operator'
+  serviceAccountName: '{{ service_account }}'
   servicePorts:
   - name: galera
     protocol: TCP

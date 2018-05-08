@@ -1,4 +1,4 @@
 cluster: openshift
 action: "provision"
 namespace: "{{ lookup('env','SERVICE_NAME') | default('galera', true) }}"
-service_account: "{{ lookup('env','SERVICE_NAME') | default('galera', true) }}-replication-operator"
+service_account: "{{ namespace | default('galera', true) }}-replication-operator"

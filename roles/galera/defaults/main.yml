@@ -2,6 +2,7 @@ cluster: openshift
 action: "provision"
 deployment_type: "{{ _apb_plan_id | default('ephemeral', true) }}"
 namespace: "{{ lookup('env','SERVICE_NAME') | default('galera', true) }}"
+service_account: "{{ namespace | default('galera', true) }}-replication-operator"
 
 service_replicas: 3
 service_name: "{{ lookup('env','SERVICE_NAME') | default('galera', true) }}"
