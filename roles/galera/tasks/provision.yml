@@ -1,0 +1,49 @@
+
+##############################################################################
+## Create a Galera cluster
+##############################################################################
+
+- name: Create {{ deployment_type }} Galera deployment
+  template:
+    src: 'galera-{{  deployment_type }}.j2'
+    dest: '/tmp/cluster.yaml'
+
+- name: Create Galera cluster
+  command: "oc apply -f /tmp/cluster.yaml"
+
+##############################################################################
+## A Kubernetes service serves as an internal load balancer.  It identifies a
+## set of replicated pods in order to proxy the connections it receives to them.
+## https://docs.openshift.org/latest/architecture/core_concepts/pods_and_services.html#services
+##############################################################################
+#- name: create replication service
+#  k8s_v1_service:
+#    name: replication
+#    namespace: '{{ namespace }}'
+#    labels:
+#      app: replication
+#      service: replication
+#    selector:
+#      app: replication
+#      service: replication
+#    ports:
+#      - name: web
+#        port: 80
+#        target_port: 8080
+
+
+##############################################################################
+## An OpenShift Origin route exposes a service at a host name, so that external
+## clients can reach it by name. Each route consists of a name, a service
+## selector, and an optional security configuration.
+## https://docs.openshift.org/latest/architecture/core_concepts/routes.html
+##############################################################################
+#- name: create replication route
+#  openshift_v1_route:
+#    name: replication
+#    namespace: '{{ namespace }}'
+#    labels:
+#      app: replication
+#      service: replication
+#    to_name: replication
+#    spec_port_target_port: web

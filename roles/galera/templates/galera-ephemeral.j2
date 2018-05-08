@@ -47,9 +47,9 @@ spec:
           value: '{{ mysql_password }}'
       volumeMounts:
       - mountPath: /var/lib/mysql
-        name: '{{ service_name }}-{{ _apb_plan_id }}-logs'
+        name: '{{ service_name }}-{{ deployment_type }}-logs'
       - mountPath: /var/log
-        name: '{{ service_name }}-{{ _apb_plan_id }}-logs'
+        name: '{{ service_name }}-{{ deployment_type }}-logs'
       ports:
       - containerPort: 3306
         name: galera
@@ -72,9 +72,9 @@ spec:
         # 4568 For Incremental State Transfer.
         # 4444 For all other State Snapshot Transfer.
     volumes:
-    - name: '{{ service_name }}-{{ _apb_plan_id }}-data'
+    - name: '{{ service_name }}-{{ deployment_type }}-data'
       emptyDir: {}
-    - name: '{{ service_name }}-{{ _apb_plan_id }}-logs'
+    - name: '{{ service_name }}-{{ deployment_type }}-logs'
       emptyDir: {}
 ---
 apiVersion: v1

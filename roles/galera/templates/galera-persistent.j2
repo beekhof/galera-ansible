@@ -29,7 +29,7 @@ spec:
         command: ["/stop.sh"]
     volumeClaimTemplates:
     - metadata:
-        name: '{{ service_name }}-{{ _apb_plan_id }}-data'
+        name: '{{ service_name }}-{{ deployment_type }}-data'
       spec:
         accessModes: [ "ReadWriteOnce" ]
         #storageClassName: my-storage-class
@@ -37,7 +37,7 @@ spec:
           requests:
             storage: {{ volume_size }}
     - metadata:
-        name: '{{ service_name }}-{{ _apb_plan_id }}-logs'
+        name: '{{ service_name }}-{{ deployment_type }}-logs'
       spec:
         accessModes: [ "ReadWriteOnce" ]
         #storageClassName: my-storage-class
@@ -64,9 +64,9 @@ spec:
           value: '{{ mysql_password }}'
       volumeMounts:
       - mountPath: /var/lib/mysql
-        name: '{{ service_name }}-{{ _apb_plan_id }}-logs'
+        name: '{{ service_name }}-{{ deployment_type }}-logs'
       - mountPath: /var/log
-        name: '{{ service_name }}-{{ _apb_plan_id }}-logs'
+        name: '{{ service_name }}-{{ deployment_type }}-logs'
       ports:
       - containerPort: 3306
         name: galera

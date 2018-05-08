@@ -1,6 +1,7 @@
 cluster: openshift
-state: present
-release: true
+action: "provision"
+deployment_type: {{ _apb_plan_id | 'ephemeral' }}
+namespace: "{{ lookup('env','SERVICE_NAME') | default('galera', true) }}"
 
 service_replicas: 3
 service_name: "{{ lookup('env','SERVICE_NAME') | default('galera', true) }}"

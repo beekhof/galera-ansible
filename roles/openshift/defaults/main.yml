@@ -1,0 +1,4 @@
+cluster: openshift
+action: "provision"
+namespace: "{{ lookup('env','SERVICE_NAME') | default('galera', true) }}"
+

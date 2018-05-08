@@ -18,9 +18,9 @@
 ##############################################################################
 ## Deprovision a service
 ##############################################################################
-- name: Create {{ _apb_plan_id }} Galera deployment
+- name: Create {{ deployment_type }} Galera deployment
   template:
-    src: 'galera-{{  _apb_plan_id }}.j2'
+    src: 'galera-{{  deployment_type }}.j2'
     dest: '/tmp/cluster.yaml'
 
 - name: Delete the Galera cluster

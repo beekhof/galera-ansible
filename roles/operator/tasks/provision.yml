@@ -1,0 +1,130 @@
+##############################################################################
+## Provision replication
+## This role executes much of the needed functionality to provision an
+## application using an Ansible Playbook Bundle.  Included in the comments
+## below are some sample resources for getting started deploying an application
+## to OpenShift.
+##############################################################################
+
+##############################################################################
+# Create the service account that the operator will run as
+##############################################################################
+- name: Create Service Account
+  k8s_v1_service_account:
+    name: {{ service_account }}
+    namespace: '{{ namespace }}'
+
+##############################################################################
+# Openshift: Give the account permission to launch containers as
+# specific no-root users
+##############################################################################
+- name: Add Privileged Policy
+  command: "oc adm policy add-scc-to-user nonroot -z {{ service_account }} -n {{ namespace }}"
+  when: cluster=="openshift"
+
+##############################################################################
+# Create a role with the permissions required to run the operator
+##############################################################################
+- name: RBAC - Create operator role
+  k8s_v1beta1_role:
+    name: '{{ service_account }}-operator-role'
+    namespace: '{{ namespace }}'
+    rules:
+    - api_groups: [clusterlabs.org]
+      resources: [replicatedstatefulsets]
+      verbs: ["*"]
+    - api_groups: [apiextensions.k8s.io]
+      resources: [customresourcedefinitions]
+      verbs: ["*"]
+    - api_groups: [""]
+      resources:
+      - pods
+      - pods/exec
+      - secrets
+      - services
+      - endpoints
+      - configmaps
+      - persistentvolumeclaims
+      - events
+      verbs:
+      - "*"
+    - api_groups: [apps]
+      resources:
+      - deployments
+      - statefulsets
+      verbs: ["*"]
+
+##############################################################################
+# Assign the service account to the new role
+##############################################################################
+- name: RBAC - Create operator binding
+  k8s_v1beta1_role_binding:
+    name: '{{ service_account }}-operator-binding'
+    namespace: '{{ namespace }}'
+    role_ref_kind: Role
+    role_ref_api_group: rbac.authorization.k8s.io
+    role_ref_name: '{{ service_account }}-operator-role'
+    subjects:
+    - kind: Group
+      name: system:serviceaccount:{{ namespace }}
+    - kind: ServiceAccount
+      name: {{ service_account }}
+      namespace: '{{ namespace }}'
+
+##############################################################################
+## Create the CRD now so that we don't need a cluster-role{-binding} to allow
+## the operator to do it
+##############################################################################
+- name: Create Replication CRD
+  k8s_v1beta1_custom_resource_definition:
+    name: replicatedstatefulsets.clusterlabs.org
+    state: present
+    spec_version: v1alpha1
+    spec_scope: Namespaced
+    spec_group: clusterlabs.org
+    spec_names_kind: ReplicatedStatefulSet
+    spec_names_singular: replicatedstatefulset
+    spec_names_plural: replicatedstatefulsets
+    spec_names_list_kind: ReplicatedStatefulSetList
+    spec_names_short_names:
+    - rss
+
+##############################################################################
+## An OpenShift Origin deployment configuration provides a replication
+## controller, spins up pods, and also provides the ability to transition from
+## one deployment of an image to a new one.
+## https://docs.openshift.org/latest/architecture/core_concepts/deployments.html#deployments-and-deployment-configurations
+##############################################################################
+#
+# TODO: Convert to a k8s deployment
+- name: Create operator deployment config
+  k8s_apps_v1beta1_deployment:
+    name: replication-operator
+    namespace: '{{ namespace }}'
+    labels:
+      app: replication-operator
+      service: replication-operator
+    replicas: 1
+    strategy_type: Recreate
+    selector_match_labels:
+      app: replication-operator
+      service: replication-operator
+    service_account_name: {{ service_account }}
+    spec_template_metadata_labels:
+      app: replication-operator
+      service: replication-operator
+    containers:
+      - image: quay.io/beekhof/rss-operator:latest
+        command: [ "/usr/local/bin/rss-operator", "-alsologtostderr", "-create-crd=false"]
+        name: rss-operator
+        env:
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: metadata.namespace
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: metadata.name
