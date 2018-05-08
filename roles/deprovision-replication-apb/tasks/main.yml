@@ -18,10 +18,27 @@
 ##############################################################################
 ## Deprovision a service
 ##############################################################################
+- name: Create {{ _apb_plan_id }} Galera deployment
+  template:
+    src: 'galera-{{  _apb_plan_id }}.j2'
+    dest: '/tmp/cluster.yaml'
+
+- name: Delete the Galera cluster
+  command: "oc delete -f /tmp/cluster.yaml"
+
+
 #- k8s_v1_service:
 #    name: replication
 #    namespace: '{{ namespace }}'
 #    state: absent
+#
+#- k8s_v1_service:
+#    name: '{{ service_instance }}'
+#    namespace: '{{ namespace }}'
+#    state: '{{ state }}'
+#  async: 180
+#  poll: 0
+#  register: rm_svc
 
 
 ##############################################################################
@@ -33,3 +50,28 @@
 #    name: replication
 #    namespace: '{{ namespace }}'
 #    state: absent
+
+#- openshift_v1_deployment_config:
+#    name: '{{ service_instance }}'
+#    namespace: '{{ namespace }}'
+#    state: '{{ state }}'
+#  async: 180
+#  poll: 0
+#  register: rm_dc
+
+
+##############################################################################
+## Now wait for it to happen
+##############################################################################
+#
+#- name: 'Check on service task'
+#  async_status: jid={{ rm_svc.ansible_job_id }}
+#  register: svc_job_result
+#  until: svc_job_result.finished
+#  retries: 120
+#
+#- name: 'Check on DC task'
+#  async_status: jid={{ rm_dc.ansible_job_id }}
+#  register: dc_job_result
+#  until: dc_job_result.finished
+#  retries: 120
