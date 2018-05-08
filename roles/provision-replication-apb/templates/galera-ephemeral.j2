@@ -76,3 +76,23 @@ spec:
       emptyDir: {}
     - name: '{{ service_name }}-{{ _apb_plan_id }}-logs'
       emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: {{ service_name }}
+  name:  {{ service_name }}
+spec:
+  publishNotReadyAddresses: true
+  externalTrafficPolicy: Local
+  sessionAffinity: ClientIP
+  type: LoadBalancer
+  selector:
+    app: {{ service_name }}
+    rss-active-member: "true"
+  ports:
+  - name: galera
+    port: 3306
+    protocol: TCP
+    targetPort: 3306

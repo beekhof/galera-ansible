@@ -88,3 +88,23 @@ spec:
         # 4567 For Galera Cluster replication traffic, multicast replication uses both UDP transport and TCP on this port.
         # 4568 For Incremental State Transfer.
         # 4444 For all other State Snapshot Transfer.
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: {{ service_name }}
+  name:  {{ service_name }}
+spec:
+  publishNotReadyAddresses: true
+  externalTrafficPolicy: Local
+  sessionAffinity: ClientIP
+  type: LoadBalancer
+  selector:
+    app: {{ service_name }}
+    rss-active-member: "true"
+  ports:
+  - name: galera
+    port: 3306
+    protocol: TCP
+    targetPort: 3306
